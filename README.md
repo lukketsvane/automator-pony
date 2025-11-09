@@ -1,19 +1,16 @@
-# 🎬 Google Drive to Website Upload Automator
+# 🎬 Direct Google Drive to Website Upload Automator
 
-Professional automation tool for uploading video files from Google Drive to ponyseeo.vercel.app with advanced features like retry logic, progress tracking, resume capability, and comprehensive logging.
+Streams video files **directly** from Google Drive to ponyseeo.vercel.app without downloading to local storage. Fast, efficient, and handles subdirectories!
 
-## ✨ Features
+## ✨ Key Features
 
-- 📂 **Recursive folder scanning** - Automatically finds all videos in folders and subfolders
+- 🚀 **Direct streaming** - No local download required! Streams from Drive → Website
+- 📂 **Recursive scanning** - Automatically processes all subdirectories
 - 🔄 **Resume capability** - Tracks uploaded files and resumes from where it left off
-- ♻️ **Automatic retry logic** - Retries failed uploads up to 3 times with exponential backoff
+- ♻️ **Automatic retry** - Retries failed uploads up to 3 times
 - 📊 **Progress tracking** - Real-time progress bars and detailed logging
-- 🎯 **Smart endpoint detection** - Tries multiple API endpoints automatically
-- 📝 **Comprehensive logging** - Detailed logs saved to `logs/` directory
-- 🔍 **Dry run mode** - Test the automation without actually uploading
-- ⚡ **Skip download mode** - Reuse already downloaded files
-- 🎨 **Beautiful console output** - Clear progress indicators and status messages
-- 🔐 **File hash tracking** - Uses SHA-256 hashing to track uploaded files reliably
+- 🎯 **Smart endpoints** - Tries multiple API endpoints automatically
+- 📝 **Comprehensive logging** - All operations logged to `logs/` directory
 
 ## 🚀 Quick Start
 
@@ -26,122 +23,108 @@ pip install -r requirements.txt
 ### 2. Run the Automation
 
 ```bash
-# Basic usage - download and upload all videos
+# Basic usage - stream and upload all videos
 python automate_upload.py
 
 # Dry run - see what would be uploaded without actually uploading
 python automate_upload.py --dry-run
 
-# Skip download - use already downloaded files
-python automate_upload.py --skip-download
-
 # Reset state and start fresh
 python automate_upload.py --reset-state
 ```
 
-## 📋 Command Line Options
+That's it! No configuration needed - everything is hardcoded and ready to go.
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Perform a dry run without actually uploading files |
-| `--skip-download` | Skip downloading from Google Drive, use existing files |
-| `--parallel` | Enable parallel uploads (experimental) |
-| `--reset-state` | Reset upload state and start fresh |
+## 📋 Hardcoded Configuration
 
-## 📁 File Structure
+The script is pre-configured with:
 
-```
-automator-pony/
-├── automate_upload.py       # Main automation script
-├── requirements.txt          # Python dependencies
-├── README.md                 # This file
-├── .gitignore               # Git ignore rules
-├── downloaded_videos/       # Downloaded videos (created automatically)
-├── logs/                    # Upload logs (created automatically)
-└── upload_state.json        # Upload state tracking (created automatically)
-```
+- **Google Drive Folder**: `1pWTzEYJQh5hl63IDsz34mUrDO7_Aygtf`
+- **API Key**: `AIzaSyA-r4BkJ30DoyB7xALj3q-n1WTavtBYqRM`
+- **Upload Site**: `https://ponyseeo.vercel.app/upload`
+- **Subdirectories**: ✅ Enabled (recursive scanning)
 
 ## 🎯 Supported Video Formats
 
-- `.mp4` - MPEG-4 Video
-- `.avi` - Audio Video Interleave
-- `.mov` - QuickTime Movie
-- `.mkv` - Matroska Video
-- `.webm` - WebM Video
-- `.flv` - Flash Video
-- `.wmv` - Windows Media Video
-- `.m4v` - iTunes Video
-- `.3gp` - 3GPP Video
-- `.mpeg` / `.mpg` - MPEG Video
-
-## 🔧 Configuration
-
-Edit the following constants in `automate_upload.py` to customize:
-
-```python
-GOOGLE_DRIVE_FOLDER_ID = "1pWTzEYJQh5hl63IDsz34mUrDO7_Aygtf"
-UPLOAD_URL = "https://ponyseeo.vercel.app/upload"
-UPLOAD_API_URL = "https://ponyseeo.vercel.app/api/upload"
-MAX_RETRIES = 3                # Number of retry attempts
-RETRY_DELAY = 5                # Seconds between retries
-UPLOAD_TIMEOUT = 600           # Upload timeout in seconds
-RATE_LIMIT_DELAY = 2           # Delay between uploads
-```
+`.mp4` `.avi` `.mov` `.mkv` `.webm` `.flv` `.wmv` `.m4v` `.3gp` `.mpeg` `.mpg`
 
 ## 📊 How It Works
 
-1. **Form Inspection** - Analyzes the upload page to understand form structure
-2. **Download Files** - Downloads all videos from Google Drive folder (including subdirectories)
-3. **Hash Calculation** - Calculates SHA-256 hash for each file to track uploads
-4. **Upload Process**:
-   - Checks if file was already uploaded (via hash)
-   - Tries multiple API endpoints automatically
-   - Retries failed uploads with exponential backoff
-   - Saves state after each upload
-5. **Summary Report** - Shows detailed statistics and saves to log file
+1. **Scan Drive** - Recursively scans Google Drive folder and all subdirectories
+2. **List Videos** - Finds all video files using Google Drive API
+3. **Stream & Upload**:
+   - Streams file directly from Google Drive
+   - Uploads to website in one operation
+   - No local storage used!
+4. **Track Progress** - Saves state after each upload
+5. **Summary Report** - Shows detailed statistics
 
 ## 🔄 Resume Capability
 
-The script automatically tracks which files have been uploaded in `upload_state.json`. If the script is interrupted or fails, simply re-run it and it will:
+The script tracks uploaded files in `upload_state.json` by Google Drive file ID. If interrupted:
 
-- Skip already uploaded files
-- Retry previously failed uploads
-- Continue from where it left off
+```bash
+python automate_upload.py  # Just re-run - it remembers!
+```
+
+## 📁 Directory Structure Support
+
+The script automatically:
+- Scans all subdirectories recursively
+- Preserves folder paths in upload metadata
+- Shows directory structure before uploading
+- Handles nested folders of any depth
+
+Example output:
+```
+📁 Directory structure:
+   Folder1/SubfolderA: 5 videos
+   Folder1/SubfolderB: 3 videos
+   Folder2: 8 videos
+   Root folder: 2 videos
+```
 
 ## 📝 Logs
 
-All uploads are logged to `logs/upload_YYYYMMDD_HHMMSS.log` with:
-- Timestamp for each operation
-- Success/failure status
-- Error messages and stack traces
-- API endpoint attempts
-- Upload statistics
+All operations logged to `logs/upload_YYYYMMDD_HHMMSS.log`:
+- File streaming progress
+- Upload attempts and results
+- Error messages
+- Summary statistics
+
+## 💡 Command Options
+
+| Option | Description |
+|--------|-------------|
+| `--dry-run` | Test without uploading (shows what would be uploaded) |
+| `--reset-state` | Forget previous uploads and start fresh |
 
 ## 🐛 Troubleshooting
 
 ### No videos found
-- Check that your Google Drive folder is publicly accessible
-- Verify the folder ID in the script
-- Ensure video files have supported extensions
+- Verify folder ID: `1pWTzEYJQh5hl63IDsz34mUrDO7_Aygtf`
+- Check folder is publicly accessible
+- Verify API key is valid
 
 ### Upload failures
-- Check the log file in `logs/` for detailed error messages
-- Verify your website is accessible
-- Try running with `--dry-run` first to test
+- Check logs in `logs/` directory
+- Verify website is accessible
+- Try `--dry-run` first
 - Check network connectivity
 
-### Reset and start over
+### Reset and retry
 ```bash
 python automate_upload.py --reset-state
 ```
 
-## 🤝 Contributing
+## ⚡ Performance
 
-Feel free to submit issues and enhancement requests!
-
-## 📜 License
-
-MIT License - feel free to use and modify as needed.
+**Why direct streaming is better:**
+- ✅ No disk space needed
+- ✅ Faster (no download/upload cycle)
+- ✅ Lower bandwidth (single transfer)
+- ✅ Works on systems with limited storage
+- ✅ Suitable for cloud environments
 
 ## 🔗 Links
 
@@ -150,4 +133,4 @@ MIT License - feel free to use and modify as needed.
 
 ---
 
-Made with ❤️ for automated video uploads
+Made with ❤️ for efficient video streaming
