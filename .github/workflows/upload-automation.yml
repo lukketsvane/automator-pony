@@ -1,0 +1,80 @@
+name: Automated Video Upload
+
+on:
+  # Run manually
+  workflow_dispatch:
+
+  # Run on schedule (daily at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Run on push to main branch
+  push:
+    branches:
+      - main
+    paths:
+      - 'automate_upload.py'
+      - 'requirements.txt'
+      - '.github/workflows/upload-automation.yml'
+
+jobs:
+  upload-videos:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cache downloaded videos
+        uses: actions/cache@v3
+        with:
+          path: downloaded_videos
+          key: ${{ runner.os }}-videos-${{ hashFiles('downloaded_videos/**') }}
+          restore-keys: |
+            ${{ runner.os }}-videos-
+
+      - name: Restore upload state
+        uses: actions/cache@v3
+        with:
+          path: upload_state.json
+          key: ${{ runner.os }}-upload-state-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-upload-state-
+
+      - name: Run automation
+        run: |
+          python automate_upload.py
+        env:
+          PYTHONUNBUFFERED: 1
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: upload-logs
+          path: logs/
+          retention-days: 30
+
+      - name: Save upload state
+        if: always()
+        uses: actions/cache/save@v3
+        with:
+          path: upload_state.json
+          key: ${{ runner.os }}-upload-state-${{ github.sha }}
+
+      - name: Notification on failure
+        if: failure()
+        run: |
+          echo "❌ Upload automation failed. Check the logs for details."
+          cat logs/*.log | tail -n 50

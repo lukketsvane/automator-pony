@@ -1,4 +1,7 @@
 downloaded_videos/
+logs/
+upload_state.json
+config.py
 __pycache__/
 *.pyc
 *.pyo
@@ -12,3 +15,11 @@ build/
 .env
 .venv
 venv/
+env/
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
