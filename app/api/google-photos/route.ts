@@ -1,36 +1,82 @@
 import { NextResponse } from 'next/server'
 
-// Google Photos shared album URL
-const ALBUM_URL = 'https://photos.app.goo.gl/ZMeEZxpuzC1Sj8uH8'
+const GOOGLE_PHOTOS_API_KEY = 'AIzaSyDk2u58Ot4wh3Gt7sXY80h7qSFbH70ssz0'
+const SHARED_ALBUM_URL = 'https://photos.app.goo.gl/ZMeEZxpuzC1Sj8uH8'
 
-export async function GET() {
+// Extract album ID from the shared URL
+async function getAlbumId(shareUrl: string): Promise<string | null> {
   try {
-    // For Google Photos shared albums, we need to parse the page HTML
-    // since there's no direct API access without OAuth
-    const response = await fetch(ALBUM_URL, {
+    // Follow redirects to get the actual album ID
+    const response = await fetch(shareUrl, {
+      redirect: 'follow',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     })
+    
+    const finalUrl = response.url
+    console.log('[v0] Final album URL:', finalUrl)
+    
+    // Extract album ID from URL patterns like:
+    // https://photos.google.com/share/{ALBUM_ID}
+    const match = finalUrl.match(/\/share\/([A-Za-z0-9_-]+)/)
+    return match ? match[1] : null
+  } catch (error) {
+    console.error('[v0] Error resolving album URL:', error)
+    return null
+  }
+}
 
-    const html = await response.text()
+export async function GET() {
+  try {
+    console.log('[v0] Fetching videos from Google Photos album')
     
-    // Extract video data from the page
-    // Google Photos embeds data in a specific format
-    const dataMatch = html.match(/data:function$$$$\{return\s+(\[.+?\])\}/)
+    // Get the album ID from the shared URL
+    const albumId = await getAlbumId(SHARED_ALBUM_URL)
     
-    if (!dataMatch) {
-      console.log('[v0] No video data found in album page')
-      return NextResponse.json({ videos: [] })
+    if (!albumId) {
+      console.log('[v0] Could not extract album ID from URL')
+      return NextResponse.json({ 
+        videos: [],
+        error: 'Could not access album. The album may need to be made fully public or require OAuth authentication.'
+      })
     }
-
-    const rawData = dataMatch[1]
-    const parsedData = JSON.parse(rawData)
     
-    console.log('[v0] Parsed album data structure')
+    console.log('[v0] Album ID:', albumId)
     
-    // Parse video items from the nested structure
-    const videos = extractVideos(parsedData)
+    // Use Google Photos Library API to list media items
+    // Note: Shared albums require the sharedAlbums.list endpoint
+    const apiUrl = `https://photoslibrary.googleapis.com/v1/sharedAlbums/${albumId}/mediaItems?key=${GOOGLE_PHOTOS_API_KEY}`
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[v0] API Error:', response.status, errorText)
+      
+      // Try alternative approach: mediaItems.search with albumId
+      return await searchMediaItems(albumId)
+    }
+    
+    const data = await response.json()
+    console.log('[v0] API Response received')
+    
+    // Filter for video items only
+    const videos = (data.mediaItems || [])
+      .filter((item: any) => item.mimeType?.startsWith('video/'))
+      .map((item: any, index: number) => ({
+        id: item.id,
+        title: item.filename || `Video ${index + 1}`,
+        thumbnail: `${item.baseUrl}=w640-h360`,
+        videoUrl: `${item.baseUrl}=dv`, // Download video format
+        width: parseInt(item.mediaMetadata?.width) || 1280,
+        height: parseInt(item.mediaMetadata?.height) || 720,
+        mimeType: item.mimeType
+      }))
     
     console.log(`[v0] Found ${videos.length} videos`)
     
@@ -38,65 +84,63 @@ export async function GET() {
   } catch (error) {
     console.error('[v0] Error fetching Google Photos:', error)
     
-    // Return mock data for development
     return NextResponse.json({
-      videos: [
-        {
-          id: '1',
-          title: 'Sample Video 1',
-          thumbnail: '/video-thumbnail-1.png',
-          videoUrl: '/sample-video-concept.png',
-          width: 1280,
-          height: 720
-        },
-        {
-          id: '2',
-          title: 'Sample Video 2',
-          thumbnail: '/video-thumbnail-2.png',
-          videoUrl: '/sample-video-concept.png',
-          width: 1280,
-          height: 720
-        }
-      ]
+      videos: [],
+      error: 'Failed to fetch videos. Please ensure the album is publicly accessible and the API key is valid.'
     })
   }
 }
 
-function extractVideos(data: any[]): any[] {
-  const videos: any[] = []
-  
+// Alternative method: Use mediaItems.search endpoint
+async function searchMediaItems(albumId: string) {
   try {
-    // Google Photos data structure varies, but typically:
-    // Videos are nested in arrays with specific indices
-    // Each video has: [url, width, height, ...metadata]
+    console.log('[v0] Trying mediaItems.search endpoint')
     
-    function traverse(obj: any, depth = 0) {
-      if (depth > 10) return // Prevent infinite recursion
-      
-      if (Array.isArray(obj)) {
-        obj.forEach((item) => traverse(item, depth + 1))
-      } else if (obj && typeof obj === 'object') {
-        Object.values(obj).forEach((value) => traverse(value, depth + 1))
-      } else if (typeof obj === 'string') {
-        // Look for video URLs (contain googleusercontent.com and video format)
-        if (obj.includes('googleusercontent.com') && 
-            (obj.includes('.mp4') || obj.includes('.mov') || obj.includes('video'))) {
-          videos.push({
-            id: `video-${videos.length}`,
-            title: `Video ${videos.length + 1}`,
-            thumbnail: obj.replace('=dv', '=w640-h360'),
-            videoUrl: obj,
-            width: 1280,
-            height: 720
-          })
-        }
-      }
+    const searchUrl = `https://photoslibrary.googleapis.com/v1/mediaItems:search?key=${GOOGLE_PHOTOS_API_KEY}`
+    
+    const response = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        albumId: albumId,
+        pageSize: 100
+      })
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[v0] Search API Error:', response.status, errorText)
+      return NextResponse.json({ 
+        videos: [],
+        error: 'Unable to access album with API key. OAuth authentication may be required for this album.'
+      })
     }
     
-    traverse(data)
+    const data = await response.json()
+    
+    // Filter for video items only
+    const videos = (data.mediaItems || [])
+      .filter((item: any) => item.mimeType?.startsWith('video/'))
+      .map((item: any, index: number) => ({
+        id: item.id,
+        title: item.filename || `Video ${index + 1}`,
+        thumbnail: `${item.baseUrl}=w640-h360`,
+        videoUrl: `${item.baseUrl}=dv`,
+        width: parseInt(item.mediaMetadata?.width) || 1280,
+        height: parseInt(item.mediaMetadata?.height) || 720,
+        mimeType: item.mimeType
+      }))
+    
+    console.log(`[v0] Found ${videos.length} videos via search`)
+    
+    return NextResponse.json({ videos })
   } catch (error) {
-    console.error('[v0] Error parsing video data:', error)
+    console.error('[v0] Search method error:', error)
+    return NextResponse.json({ 
+      videos: [],
+      error: 'All API methods failed. OAuth authentication is required.'
+    })
   }
-  
-  return videos
 }
