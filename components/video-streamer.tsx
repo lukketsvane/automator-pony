@@ -10,55 +10,70 @@ interface Video {
   title: string
   thumbnail: string
   videoUrl: string
-  width: number
-  height: number
 }
 
 interface VideoStreamerProps {
   userEmail?: string
 }
 
+const VIDEOS: Video[] = [
+  {
+    id: '1',
+    title: 'Video 1',
+    thumbnail: '/placeholder.svg?height=200&width=400',
+    videoUrl: 'https://your-video-url-1.mp4', // Replace with actual video URL
+  },
+  {
+    id: '2',
+    title: 'Video 2',
+    thumbnail: '/placeholder.svg?height=200&width=400',
+    videoUrl: 'https://your-video-url-2.mp4', // Replace with actual video URL
+  },
+  // Add more videos here
+]
+
 export default function VideoStreamer({ userEmail }: VideoStreamerProps) {
-  const [videos, setVideos] = useState<Video[]>([])
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
+  const [videos, setVideos] = useState<Video[]>(VIDEOS)
+  const [selectedVideo, setSelectedVideo] = useState<Video>(VIDEOS[0])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchVideos()
+    // Fetch videos if needed in the future
+    // fetchVideos()
   }, [])
 
-  const fetchVideos = async () => {
-    try {
-      const response = await fetch('/api/google-photos')
-      const data = await response.json()
-      console.log('[v0] Fetched videos:', data)
-      setVideos(data.videos || [])
-      if (data.videos && data.videos.length > 0) {
-        setSelectedVideo(data.videos[0])
-      }
-    } catch (error) {
-      console.error('[v0] Failed to fetch videos:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // const fetchVideos = async () => {
+  //   try {
+  //     const response = await fetch('/api/google-photos')
+  //     const data = await response.json()
+  //     console.log('[v0] Fetched videos:', data)
+  //     setVideos(data.videos || [])
+  //     if (data.videos && data.videos.length > 0) {
+  //       setSelectedVideo(data.videos[0])
+  //     }
+  //   } catch (error) {
+  //     console.error('[v0] Failed to fetch videos:', error)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     window.location.href = '/login'
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading videos...</p>
-        </div>
-      </div>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen bg-background flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+  //         <p className="text-muted-foreground">Loading videos...</p>
+  //       </div>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,17 +103,18 @@ export default function VideoStreamer({ userEmail }: VideoStreamerProps) {
             >
               <List className="h-4 w-4" />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleLogout}
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+            {userEmail && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleLogout}
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
-
 
         {/* Video Player */}
         {selectedVideo && (
