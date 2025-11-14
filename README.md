@@ -16,13 +16,13 @@ Streams video files **directly** from Google Drive to ponyseeo.vercel.app withou
 
 ### 1. Install Dependencies
 
-```bash
+\`\`\`bash
 pip install -r requirements.txt
-```
+\`\`\`
 
 ### 2. Run the Automation
 
-```bash
+\`\`\`bash
 # Basic usage - stream and upload all videos
 python automate_upload.py
 
@@ -31,7 +31,7 @@ python automate_upload.py --dry-run
 
 # Reset state and start fresh
 python automate_upload.py --reset-state
-```
+\`\`\`
 
 That's it! No configuration needed - everything is hardcoded and ready to go.
 
@@ -63,9 +63,9 @@ The script is pre-configured with:
 
 The script tracks uploaded files in `upload_state.json` by Google Drive file ID. If interrupted:
 
-```bash
+\`\`\`bash
 python automate_upload.py  # Just re-run - it remembers!
-```
+\`\`\`
 
 ## 📁 Directory Structure Support
 
@@ -76,13 +76,13 @@ The script automatically:
 - Handles nested folders of any depth
 
 Example output:
-```
+\`\`\`
 📁 Directory structure:
    Folder1/SubfolderA: 5 videos
    Folder1/SubfolderB: 3 videos
    Folder2: 8 videos
    Root folder: 2 videos
-```
+\`\`\`
 
 ## 📝 Logs
 
@@ -113,9 +113,9 @@ All operations logged to `logs/upload_YYYYMMDD_HHMMSS.log`:
 - Check network connectivity
 
 ### Reset and retry
-```bash
+\`\`\`bash
 python automate_upload.py --reset-state
-```
+\`\`\`
 
 ## ⚡ Performance
 

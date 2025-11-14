@@ -8,6 +8,9 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[v0] OAuth error:', error)
+    if (error === 'redirect_uri_mismatch') {
+      return NextResponse.redirect(new URL('/login?error=redirect_uri_mismatch', request.url))
+    }
     return NextResponse.redirect(new URL('/login?error=access_denied', request.url))
   }
 
@@ -17,6 +20,7 @@ export async function GET(request: NextRequest) {
 
   try {
     console.log('[v0] Exchanging code for token...')
+    console.log('[v0] Redirect URI used:', `${request.nextUrl.origin}/api/auth/callback`)
     
     // Exchange code for access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -36,6 +40,9 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
       console.error('[v0] Token exchange failed:', errorData)
+      if (errorData.includes('redirect_uri_mismatch')) {
+        return NextResponse.redirect(new URL('/login?error=redirect_uri_mismatch', request.url))
+      }
       throw new Error('Failed to exchange code for token')
     }
 

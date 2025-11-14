@@ -2,8 +2,14 @@
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Suspense } from "react"
+import { useSearchParams } from 'next/navigation'
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
+  
   const handleGoogleLogin = () => {
     const clientId = '160495080765-k7r6l919gpfo6i3m9a67muvdu8vjhf8o.apps.googleusercontent.com'
     const redirectUri = `${window.location.origin}/api/auth/callback`
@@ -18,7 +24,23 @@ export default function LoginPage() {
       `prompt=consent`
     
     console.log('[v0] Redirecting to Google OAuth:', authUrl)
+    console.log('[v0] Redirect URI:', redirectUri)
     window.location.href = authUrl
+  }
+
+  const getErrorMessage = (error: string | null) => {
+    switch (error) {
+      case 'access_denied':
+        return 'Access denied. Please grant the required permissions.'
+      case 'no_code':
+        return 'No authorization code received from Google.'
+      case 'token_exchange_failed':
+        return 'Failed to exchange token. This might be a redirect URI mismatch. Check Google Cloud Console.'
+      case 'redirect_uri_mismatch':
+        return `Redirect URI mismatch. Add ${window.location.origin}/api/auth/callback to Google Cloud Console authorized redirect URIs.`
+      default:
+        return error ? `Authentication error: ${error}` : null
+    }
   }
 
   return (
@@ -30,6 +52,12 @@ export default function LoginPage() {
             Sign in with your Google account to access your video library
           </p>
         </div>
+        
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{getErrorMessage(error)}</AlertDescription>
+          </Alert>
+        )}
         
         <Button onClick={handleGoogleLogin} className="w-full" size="lg">
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -56,7 +84,20 @@ export default function LoginPage() {
         <p className="text-xs text-muted-foreground mt-6 text-center">
           By signing in, you agree to access your Google Photos library
         </p>
+        
+        <div className="mt-4 p-3 bg-muted rounded-md">
+          <p className="text-xs text-muted-foreground mb-1">Required redirect URI:</p>
+          <code className="text-xs break-all">{typeof window !== 'undefined' ? `${window.location.origin}/api/auth/callback` : ''}</code>
+        </div>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
