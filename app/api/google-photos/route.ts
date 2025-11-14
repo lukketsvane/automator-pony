@@ -6,19 +6,24 @@ export async function GET() {
   try {
     console.log('[v0] Fetching videos from Google Photos shared album')
     
-    // Fetch the shared album page
     const response = await fetch(SHARED_ALBUM_URL, {
+      redirect: 'follow', // Explicitly follow redirects
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
       }
     })
+    
+    console.log('[v0] Response status:', response.status)
+    console.log('[v0] Final URL after redirect:', response.url)
     
     if (!response.ok) {
       throw new Error(`Failed to fetch album: ${response.status}`)
     }
     
     const html = await response.text()
-    console.log('[v0] Album page fetched, parsing content')
+    console.log('[v0] Album page fetched, length:', html.length)
     
     // Extract video data from the page
     // Google Photos embeds data in JSON within the HTML
@@ -107,7 +112,7 @@ export async function GET() {
     
     return NextResponse.json({
       videos: [],
-      error: 'Failed to fetch videos from Google Photos. The album may require OAuth authentication or different access permissions.',
+      error: error instanceof Error ? error.message : 'Failed to fetch videos from Google Photos',
       requiresOAuth: true
     })
   }
