@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Play, Grid3x3, List } from 'lucide-react'
+import { Play, Grid3x3, List, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { useSession, signOut } from 'next-auth/react'
 
 interface Video {
   id: string
@@ -15,25 +16,29 @@ interface Video {
 }
 
 export default function VideoStreamer() {
+  const { data: session } = useSession()
   const [videos, setVideos] = useState<Video[]>([])
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchVideos()
-  }, [])
+    if (session) {
+      fetchVideos()
+    }
+  }, [session])
 
   const fetchVideos = async () => {
     try {
       const response = await fetch('/api/google-photos')
       const data = await response.json()
-      setVideos(data.videos)
-      if (data.videos.length > 0) {
+      console.log('[v0] Fetched videos:', data)
+      setVideos(data.videos || [])
+      if (data.videos && data.videos.length > 0) {
         setSelectedVideo(data.videos[0])
       }
     } catch (error) {
-      console.error('Failed to fetch videos:', error)
+      console.error('[v0] Failed to fetch videos:', error)
     } finally {
       setLoading(false)
     }
@@ -55,7 +60,14 @@ export default function VideoStreamer() {
       <div className="container mx-auto p-4 lg:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Video Library</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Video Library</h1>
+            {session?.user?.email && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Signed in as {session.user.email}
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
@@ -70,6 +82,14 @@ export default function VideoStreamer() {
               onClick={() => setViewMode('list')}
             >
               <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => signOut()}
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
