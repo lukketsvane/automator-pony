@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { auth } from '@/auth'
 
 const SHARED_ALBUM_URL = 'https://photos.app.goo.gl/ZMeEZxpuzC1Sj8uH8'
 
