@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
-
-const SHARED_ALBUM_URL = 'https://photos.app.goo.gl/ZMeEZxpuzC1Sj8uH8'
+import { cookies } from 'next/headers'
 
 export async function GET() {
   try {
-    const session = await auth()
+    const cookieStore = await cookies()
+    const accessToken = cookieStore.get('access_token')
     
-    if (!session?.accessToken) {
+    if (!accessToken) {
       return NextResponse.json({
         videos: [],
         error: 'Authentication required'
@@ -21,7 +20,7 @@ export async function GET() {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.accessToken}`,
+          'Authorization': `Bearer ${accessToken.value}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
