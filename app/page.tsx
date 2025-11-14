@@ -1,27 +1,86 @@
 'use client'
 
-import { useState } from 'react'
-import { Play, Grid3x3, List } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Play, Grid3x3, List, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-export default function Home() {
-  const videos = [
-    {
-      id: '1',
-      url: 'https://lh3.googleusercontent.com/pw/AP1GczP_YOUR_VIDEO_URL_1',
-      title: 'Video 1',
-      thumbnail: '/video-thumbnail.png'
-    },
-    {
-      id: '2',
-      url: 'https://lh3.googleusercontent.com/pw/AP1GczP_YOUR_VIDEO_URL_2',
-      title: 'Video 2',
-      thumbnail: '/video-thumbnail.png'
-    },
-  ]
+interface Video {
+  id: string
+  url: string
+  title: string
+  thumbnail: string
+}
 
-  const [currentVideo, setCurrentVideo] = useState(videos[0])
+export default function Home() {
+  const [videos, setVideos] = useState<Video[]>([])
+  const [currentVideo, setCurrentVideo] = useState<Video | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchVideos = async () => {
+    setLoading(true)
+    setError(null)
+    console.log('[v0] Fetching videos from Google Photos album...')
+    
+    try {
+      const response = await fetch('/api/fetch-videos')
+      console.log('[v0] Response status:', response.status)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch videos: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      console.log('[v0] Fetched videos:', data)
+      
+      if (data.videos && data.videos.length > 0) {
+        setVideos(data.videos)
+        setCurrentVideo(data.videos[0])
+      } else {
+        setError('No videos found in the album')
+      }
+    } catch (err) {
+      console.error('[v0] Error fetching videos:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load videos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchVideos()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-lg">Loading videos from Google Photos...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <p className="text-lg text-destructive mb-4">{error}</p>
+          <Button onClick={fetchVideos}>Try Again</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!currentVideo) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-lg">No videos available</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,6 +88,9 @@ export default function Home() {
         <header className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Ponyseeo Videos</h1>
           <div className="flex gap-2">
+            <Button onClick={fetchVideos} variant="outline" size="icon">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="icon"
@@ -79,7 +141,7 @@ export default function Home() {
                     }`}
                   >
                     <img
-                      src={video.thumbnail || "/placeholder.svg"}
+                      src={video.thumbnail || "/placeholder.svg?height=200&width=300"}
                       alt={video.title}
                       className="w-full aspect-video object-cover"
                     />
@@ -96,16 +158,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h3 className="font-semibold mb-2">How to add your videos:</h3>
-          <ol className="text-sm space-y-1 list-decimal list-inside">
-            <li>Open your Google Photos album: <a href="https://photos.app.goo.gl/ZMeEZxpuzC1Sj8uH8" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Your Album</a></li>
-            <li>Click on a video, then click the 3 dots menu and select "Download"</li>
-            <li>Cancel the download, then go to chrome://downloads/ and copy the full URL</li>
-            <li>Edit app/page.tsx and replace the placeholder URLs with your video URLs</li>
-          </ol>
         </div>
       </div>
     </div>
